@@ -1,8 +1,6 @@
 //! Implementation of the echo builtin.
 
-use libc::c_int;
-
-use super::shared::{builtin_missing_argument, io_streams_t, STATUS_CMD_OK, STATUS_INVALID_ARGS};
+use super::shared::{builtin_missing_argument, io_streams_t, CommandError};
 use crate::ffi::parser_t;
 use crate::wchar::{wchar_literal_byte, wstr, WString, L};
 use crate::wgetopt::{wgetopter_t, woption};
@@ -28,7 +26,7 @@ fn parse_options(
     args: &mut [&wstr],
     parser: &mut parser_t,
     streams: &mut io_streams_t,
-) -> Result<(Options, usize), Option<c_int>> {
+) -> Result<(Options, usize), CommandError> {
     let cmd = args[0];
 
     const SHORT_OPTS: &wstr = L!("+:Eens");
@@ -48,7 +46,7 @@ fn parse_options(
             'E' => opts.interpret_special_chars = false,
             ':' => {
                 builtin_missing_argument(parser, streams, cmd, args[w.woptind - 1], true);
-                return Err(STATUS_INVALID_ARGS);
+                return Err(CommandError::InvalidArgs);
             }
             '?' => {
                 return Ok((oldopts, w.woptind - 1));
@@ -143,12 +141,8 @@ pub fn echo(
     parser: &mut parser_t,
     streams: &mut io_streams_t,
     args: &mut [&wstr],
-) -> Option<c_int> {
-    let (opts, optind) = match parse_options(args, parser, streams) {
-        Ok((opts, optind)) => (opts, optind),
-        Err(err @ Some(_)) if err != STATUS_CMD_OK => return err,
-        Err(err) => panic!("Illogical exit code from parse_options(): {err:?}"),
-    };
+) -> Result<(), CommandError> {
+    let (opts, optind) = parse_options(args, parser, streams)?;
 
     // The special character \c can be used to indicate no more output.
     let mut output_stopped = false;
@@ -228,5 +222,5 @@ pub fn echo(
         streams.out.append(out);
     }
 
-    STATUS_CMD_OK
+    Ok(())
 }

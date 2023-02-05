@@ -1,8 +1,8 @@
-use libc::{c_int, pid_t};
+use libc::pid_t;
 
 use crate::builtins::shared::{
     builtin_missing_argument, builtin_print_help, builtin_unknown_option, io_streams_t,
-    STATUS_CMD_OK, STATUS_INVALID_ARGS,
+    CommandError,
 };
 use crate::ffi::{job_t, parser_t, proc_wait_any, wait_handle_ref_t, Repin};
 use crate::signal::sigchecker_t;
@@ -118,9 +118,9 @@ fn wait_for_completion(
     parser: &mut parser_t,
     whs: &[wait_handle_ref_t],
     any_flag: bool,
-) -> Option<c_int> {
+) -> Result<(), CommandError> {
     if whs.is_empty() {
-        return Some(0);
+        return Ok(());
     }
 
     let mut sigint = sigchecker_t::new_sighupint();
@@ -141,10 +141,10 @@ fn wait_for_completion(
                     }
                 }
             }
-            return Some(0);
+            return Ok(());
         }
         if sigint.check() {
-            return Some(128 + libc::SIGINT);
+            return Err(CommandError::Custom(128 + libc::SIGINT));
         }
         proc_wait_any(parser.pin());
     }
@@ -155,7 +155,7 @@ pub fn wait(
     parser: &mut parser_t,
     streams: &mut io_streams_t,
     argv: &mut [&wstr],
-) -> Option<c_int> {
+) -> Result<(), CommandError> {
     let cmd = argv[0];
     let argc = argv.len();
     let mut any_flag = false; // flag for -n option
@@ -179,11 +179,11 @@ pub fn wait(
             }
             ':' => {
                 builtin_missing_argument(parser, streams, cmd, argv[w.woptind - 1], print_hints);
-                return STATUS_INVALID_ARGS;
+                return Err(CommandError::InvalidArgs);
             }
             '?' => {
                 builtin_unknown_option(parser, streams, cmd, argv[w.woptind - 1], print_hints);
-                return STATUS_INVALID_ARGS;
+                return Err(CommandError::InvalidArgs);
             }
             _ => {
                 panic!("unexpected retval from wgeopter.next()");
@@ -193,7 +193,7 @@ pub fn wait(
 
     if print_help {
         builtin_print_help(parser, streams, cmd);
-        return STATUS_CMD_OK;
+        return Ok(());
     }
 
     if w.woptind == argc {
@@ -240,7 +240,7 @@ pub fn wait(
         }
     }
     if wait_handles.is_empty() {
-        return STATUS_INVALID_ARGS;
+        return Err(CommandError::InvalidArgs);
     }
     return wait_for_completion(parser, &wait_handles, any_flag);
 }

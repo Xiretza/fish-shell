@@ -30,11 +30,43 @@ mod builtins_ffi {
     impl Vec<wcharz_t> {}
 }
 
-/// A handy return value for successful builtins.
-pub const STATUS_CMD_OK: Option<c_int> = Some(0);
+pub enum CommandError {
+    /// The status code used for failure exit in a command (but not if the args were invalid).
+    CmdError,
+    /// The status code used for invalid arguments given to a command. This is distinct from valid
+    /// arguments that might result in a command failure. An invalid args condition is something
+    /// like an unrecognized flag, missing or too many arguments, an invalid integer, etc. But
+    InvalidArgs,
+    /// The status code used when a command was not found.
+    CmdUnknown,
+    /// The status code used when an external command can not be run.
+    NotExecutable,
+    /// The status code used when a wildcard had no matches.
+    UnmatchedWildcard,
+    /// The status code used when illegal command name is encountered.
+    IllegalCmd,
+    /// The status code used when `read` is asked to consume too much data.
+    ReadTooMuch,
+    /// The status code when an expansion fails, for example, "$foo["
+    ExpandError,
+    Custom(i32),
+}
 
-/// A handy return value for invalid args.
-pub const STATUS_INVALID_ARGS: Option<c_int> = Some(2);
+impl From<CommandError> for c_int {
+    fn from(err: CommandError) -> Self {
+        match err {
+            CommandError::CmdError => 1,
+            CommandError::InvalidArgs => 2,
+            CommandError::CmdUnknown => 127,
+            CommandError::NotExecutable => 126,
+            CommandError::UnmatchedWildcard => 124,
+            CommandError::IllegalCmd => 123,
+            CommandError::ReadTooMuch => 122,
+            CommandError::ExpandError => 121,
+            CommandError::Custom(n) => n,
+        }
+    }
+}
 
 /// A wrapper around output_stream_t.
 pub struct output_stream_t(*mut ffi::output_stream_t);
@@ -94,22 +126,28 @@ fn rust_run_builtin(
 
     match run_builtin(parser.unpin(), streams, args.as_mut_slice(), builtin) {
         None => false,
-        Some(status) => {
-            *status_code = status;
+        Some(Ok(())) => {
+            *status_code = 0;
+            true
+        }
+        Some(Err(e)) => {
+            *status_code = e.into();
             true
         }
     }
 }
 
+/// Runs the specified builtin. Returns `Some(status)` if `$status` should be updated, `None`
+/// otherwise.
 pub fn run_builtin(
     parser: &mut parser_t,
     streams: &mut io_streams_t,
     args: &mut [&wstr],
     builtin: RustBuiltin,
-) -> Option<c_int> {
+) -> Option<Result<(), CommandError>> {
     match builtin {
-        RustBuiltin::Echo => super::echo::echo(parser, streams, args),
-        RustBuiltin::Wait => wait::wait(parser, streams, args),
+        RustBuiltin::Echo => Some(super::echo::echo(parser, streams, args)),
+        RustBuiltin::Wait => Some(wait::wait(parser, streams, args)),
     }
 }
 
