@@ -1622,12 +1622,13 @@ impl<'ctx> Completer<'ctx> {
                 // #6288.
                 if env_name == L!("history") {
                     let history = History::with_name(&history_session_id(&*self.ctx.vars));
-                    let history = history.lock().unwrap();
                     for i in 1..history.size() {
                         if i > 1 {
                             desc.push(' ');
                         }
-                        desc.push_utfstr(&expand_escape_string(history.item_at_index(i).str()));
+                        desc.push_utfstr(&expand_escape_string(
+                            history.item_at_index(i).unwrap().str(),
+                        ));
                     }
                 } else {
                     // Can't use ctx.vars here, it could be any variable.

@@ -690,7 +690,7 @@ fn expand_variables(
         if let Some(ref var) = var {
             effective_val_count = var.as_list().len();
         } else if let Some(ref history) = history {
-            effective_val_count = history.lock().unwrap().size();
+            effective_val_count = history.size();
         }
         match parse_slice(
             &instr[slice_start..],
@@ -748,7 +748,7 @@ fn expand_variables(
     let mut var_item_list = vec![];
     if all_values {
         if let Some(ref history) = history {
-            history.lock().unwrap().get_history(&mut var_item_list);
+            history.get_history(&mut var_item_list);
         } else {
             var.as_ref().unwrap().to_list(&mut var_item_list);
         }
@@ -757,10 +757,7 @@ fn expand_variables(
         if let Some(ref history) = history {
             // Ask history to map indexes to item strings.
             // Note this may have missing entries for out-of-bounds.
-            let item_map = history
-                .lock()
-                .unwrap()
-                .items_at_indexes(var_idx_list.clone());
+            let item_map = history.items_at_indexes(var_idx_list.clone());
             for item_index in var_idx_list {
                 if let Some(item) = item_map.get(&item_index) {
                     var_item_list.push(item.clone());
