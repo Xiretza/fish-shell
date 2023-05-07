@@ -27,9 +27,7 @@ pub struct OperationContext<'a> {
     pub parser: Option<ParserRef>,
 
     // The set of variables.
-    // todo! This should be an Arc<dyn Environment> but I'm not sure how to convert from
-    // Arc<EnvStackRef>.
-    pub vars: EnvStackRef,
+    pub vars: EnvironmentRef,
 
     vars_ffi: EnvStackRefFFI,
 
@@ -71,7 +69,7 @@ impl<'a> OperationContext<'a> {
         let vars_ffi = EnvStackRefFFI(Arc::clone(&vars));
         OperationContext {
             parser: Some(parser),
-            vars,
+            vars: vars as _,
             vars_ffi,
             expansion_limit,
             job_group: None,
