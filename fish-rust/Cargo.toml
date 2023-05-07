@@ -26,6 +26,7 @@ rand = { version = "0.8.5", features = ["small_rng"] }
 unixstring = "0.2.7"
 widestring = "1.0.2"
 lazy_static = "1.4.0"
+chrono = { version = "0.4.24", default-features = false, features = ["std", "clock"] }
 
 [build-dependencies]
 autocxx-build = "0.23.1"
