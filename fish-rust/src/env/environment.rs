@@ -34,7 +34,7 @@ lazy_static! {
 /// Set when a universal variable has been modified but not yet been written to disk via sync().
 static UVARS_LOCALLY_MODIFIED: RelaxedAtomicBool = RelaxedAtomicBool::new(false);
 
-pub type EnvironmentRef = Arc<dyn Environment>;
+pub type EnvironmentRef = Arc<dyn Environment + Sync + Send>;
 
 /// An environment is read-only access to variable values.
 pub trait Environment {
