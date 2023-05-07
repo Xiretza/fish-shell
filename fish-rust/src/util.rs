@@ -268,7 +268,12 @@ fn wcsfilecmp_leading_digits(a: &wstr, b: &wstr) -> (Ordering, usize, usize) {
 /// assert_eq!(find_subslice(b"ABCDABD", haystack), Some(15));
 /// assert_eq!(find_subslice(b"ABCDE", haystack), None);
 /// ```
-pub fn find_subslice<T: PartialEq>(needle: &[T], haystack: &[T]) -> Option<usize> {
+pub fn find_subslice<T: PartialEq>(
+    needle: impl AsRef<[T]>,
+    haystack: impl AsRef<[T]>,
+) -> Option<usize> {
+    let needle = needle.as_ref();
+    let haystack = haystack.as_ref();
     haystack.windows(needle.len()).position(|w| w == needle)
 }
 
