@@ -237,7 +237,7 @@ mod history_ffi {
     }
 }
 
-use self::history_ffi::{PersistenceMode, SearchDirection, SearchType};
+pub use self::history_ffi::{PersistenceMode, SearchDirection, SearchType};
 
 // Our history format is intended to be valid YAML. Here it is:
 //
