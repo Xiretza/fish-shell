@@ -862,7 +862,7 @@ pub fn tok_command(str: &wstr) -> WString {
             return WString::new();
         }
         let text = t.text_of(&token);
-        if variable_assignment_equals_pos(text).is_some() {
+        if split_variable_assignment_equals(text).is_some() {
             continue;
         }
         return text.to_owned();
@@ -1265,29 +1265,21 @@ fn is_path_component_character(c: char) -> bool {
     tok_is_string_character(c, None) && !L!("/={,}'\":@#").as_char_slice().contains(&c)
 }
 
-/// The position of the equal sign in a variable assignment like foo=bar.
+/// The two parts left and right of the equal sign in a variable assignment like foo=bar.
 ///
-/// Return the location of the equals sign, or none if the string does
+/// Return the two parts (not including the equal sign itself), or `None` if the string does
 /// not look like a variable assignment like FOO=bar.  The detection
-/// works similar as in some POSIX shells: only letters and numbers qre
+/// works similar as in some POSIX shells: only letters and numbers are
 /// allowed on the left hand side, no quotes or escaping.
-pub fn variable_assignment_equals_pos(txt: &wstr) -> Option<usize> {
-    let mut found_potential_variable = false;
-
-    // TODO bracket indexing
-    for (i, c) in txt.chars().enumerate() {
-        if !found_potential_variable {
-            if !valid_var_name_char(c) {
-                return None;
-            }
-            found_potential_variable = true;
-        } else {
-            if c == '=' {
-                return Some(i);
-            }
-            if !valid_var_name_char(c) {
-                return None;
-            }
+pub fn split_variable_assignment_equals(txt: &wstr) -> Option<(&wstr, &wstr)> {
+    for (i, c) in txt.char_indices() {
+        if c == '=' && i > 0 {
+            let (name, eq_value) = txt.split_at(i);
+            let (_eq, value) = eq_value.split_first_char().unwrap();
+            return Some((name, value));
+        }
+        if !valid_var_name_char(c) {
+            return None;
         }
     }
     None

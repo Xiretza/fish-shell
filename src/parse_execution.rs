@@ -45,7 +45,7 @@ use crate::reader::fish_is_unwinding_for_exit;
 use crate::redirection::{RedirectionMode, RedirectionSpec, RedirectionSpecList};
 use crate::signal::Signal;
 use crate::timer::push_timer;
-use crate::tokenizer::{variable_assignment_equals_pos, PipeOrRedir};
+use crate::tokenizer::{split_variable_assignment_equals, PipeOrRedir};
 use crate::trace::{trace_if_enabled, trace_if_enabled_with_args};
 use crate::wchar::{wstr, WString, L};
 use crate::wchar_ext::WExt;
@@ -647,9 +647,7 @@ impl<'a> ParseExecutionContext {
         *block = Some(ctx.parser().push_block(Block::variable_assignment_block()));
         for variable_assignment in variable_assignment_list {
             let source = self.node_source(&**variable_assignment);
-            let equals_pos = variable_assignment_equals_pos(&source).unwrap();
-            let variable_name = &source[..equals_pos];
-            let expression = &source[equals_pos + 1..];
+            let (variable_name, expression) = split_variable_assignment_equals(&source).unwrap();
             let mut expression_expanded = vec![];
             let mut errors = ParseErrorList::new();
             // TODO this is mostly copied from expand_arguments_from_nodes, maybe extract to function
@@ -662,7 +660,7 @@ impl<'a> ParseExecutionContext {
             );
             parse_error_offset_source_start(
                 &mut errors,
-                variable_assignment.range().unwrap().start() + equals_pos + 1,
+                variable_assignment.range().unwrap().start() + variable_name.chars().len() + 1,
             );
             match expand_ret.result {
                 ExpandResultCode::error => {

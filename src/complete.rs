@@ -39,7 +39,7 @@ use crate::{
     parser::{Block, Parser},
     parser_keywords::parser_keywords_is_subcommand,
     path::{path_get_path, path_try_get_path},
-    tokenizer::{variable_assignment_equals_pos, Tok, TokFlags, TokenType, Tokenizer},
+    tokenizer::{split_variable_assignment_equals, Tok, TokFlags, TokenType, Tokenizer},
     wchar::{wstr, WString, L},
     wchar_ext::WExt,
     wcstringutil::{
@@ -668,7 +668,7 @@ impl<'ctx> Completer<'ctx> {
                 break;
             }
             let tok_src = tok.get_source(&cmdline);
-            if variable_assignment_equals_pos(tok_src).is_none() {
+            if split_variable_assignment_equals(tok_src).is_none() {
                 break;
             }
             var_assignments.push(tok_src.to_owned());
@@ -722,8 +722,7 @@ impl<'ctx> Completer<'ctx> {
         }
 
         if cmd_tok.location_in_or_at_end_of_source_range(cursor_pos) {
-            let equals_sign_pos = variable_assignment_equals_pos(current_token);
-            if equals_sign_pos.is_some() {
+            if split_variable_assignment_equals(current_token).is_some() {
                 self.complete_param_expand(
                     current_token,
                     true,  /* do_file */
@@ -1820,10 +1819,8 @@ impl<'ctx> Completer<'ctx> {
         let expand_flags = ExpandFlags::FAIL_ON_CMDSUBST;
         let block = parser.push_block(Block::variable_assignment_block());
         for var_assign in var_assignments {
-            let equals_pos = variable_assignment_equals_pos(var_assign)
+            let (variable_name, expression) = split_variable_assignment_equals(var_assign)
                 .expect("All variable assignments should have equals position");
-            let variable_name = var_assign.as_char_slice()[..equals_pos].into();
-            let expression = var_assign.slice_from(equals_pos + 1);
 
             let mut expression_expanded = Vec::new();
             let expand_ret = expand_string(
@@ -1943,7 +1940,7 @@ impl<'ctx> Completer<'ctx> {
             let tokenizer = Tokenizer::new(&wt, TokFlags(0));
             for tok in tokenizer {
                 let mut tok_src = tok.get_source(&wt).to_owned();
-                if variable_assignment_equals_pos(&tok_src).is_some() {
+                if split_variable_assignment_equals(&tok_src).is_some() {
                     ad.var_assignments.push(tok_src);
                 } else {
                     expand_command_token(self.ctx, &mut tok_src);

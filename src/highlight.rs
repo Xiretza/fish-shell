@@ -35,7 +35,7 @@ use crate::path::{
 };
 use crate::redirection::RedirectionMode;
 use crate::threads::assert_is_background_thread;
-use crate::tokenizer::{variable_assignment_equals_pos, PipeOrRedir};
+use crate::tokenizer::{split_variable_assignment_equals, PipeOrRedir};
 use crate::wchar::{wstr, WString, L};
 use crate::wchar_ext::WExt;
 use crate::wcstringutil::{
@@ -1310,10 +1310,9 @@ impl<'s> Highlighter<'s> {
     fn visit_variable_assignment(&mut self, varas: &VariableAssignment) {
         self.color_as_argument(varas, true);
         // Highlight the '=' in variable assignments as an operator.
-        if let Some(offset) = variable_assignment_equals_pos(varas.source(self.buff)) {
-            let equals_loc = varas.source_range().start() + offset;
+        if let Some((var_name, _)) = split_variable_assignment_equals(varas.source(self.buff)) {
+            let equals_loc = varas.source_range().start() + var_name.chars().count();
             self.color_array[equals_loc] = HighlightSpec::with_fg(HighlightRole::operat);
-            let var_name = &varas.source(self.buff)[..offset];
             self.pending_variables.push(var_name);
         }
     }
@@ -1341,7 +1340,7 @@ impl<'s> Highlighter<'s> {
         if !self.io_still_ok() {
             // We cannot check if the command is invalid, so just assume it's valid.
             is_valid_cmd = true;
-        } else if variable_assignment_equals_pos(cmd).is_some() {
+        } else if split_variable_assignment_equals(cmd).is_some() {
             is_valid_cmd = true;
         } else {
             // Check to see if the command is valid.

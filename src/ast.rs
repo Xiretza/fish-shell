@@ -20,7 +20,7 @@ use crate::parse_tree::ParseToken;
 #[cfg(test)]
 use crate::tests::prelude::*;
 use crate::tokenizer::{
-    variable_assignment_equals_pos, TokFlags, TokenType, Tokenizer, TokenizerError,
+    split_variable_assignment_equals, TokFlags, TokenType, Tokenizer, TokenizerError,
     TOK_ACCEPT_UNFINISHED, TOK_CONTINUE_AFTER_ERROR, TOK_SHOW_COMMENTS,
 };
 use crate::wchar::prelude::*;
@@ -2707,7 +2707,7 @@ impl<'a> TokenStream<'a> {
         result.has_dash_prefix = text.starts_with('-');
         result.is_help_argument = [L!("-h"), L!("--help")].contains(&text);
         result.is_newline = result.typ == ParseTokenType::end && text == "\n";
-        result.may_be_variable_assignment = variable_assignment_equals_pos(text).is_some();
+        result.may_be_variable_assignment = split_variable_assignment_equals(text).is_some();
         result.tok_error = token.error;
 
         assert!(token.offset() < SOURCE_OFFSET_INVALID);
@@ -3574,9 +3574,7 @@ impl<'s> Populator<'s> {
             let token = &self.consume_any_token();
             let text = &self.tokens.src
                 [token.source_start()..token.source_start() + token.source_length()];
-            let equals_pos = variable_assignment_equals_pos(text).unwrap();
-            let variable = &text[..equals_pos];
-            let value = &text[equals_pos + 1..];
+            let (variable, value) = split_variable_assignment_equals(text).unwrap();
             parse_error!(
                 self,
                 token,
