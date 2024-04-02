@@ -320,6 +320,36 @@ impl WExt for wstr {
     }
 }
 
+pub trait SplitFirstChar {
+    fn split_first_char(&self) -> Option<(char, &Self)>;
+    fn split_first_char_mut(&mut self) -> Option<(char, &mut Self)>;
+}
+
+impl SplitFirstChar for str {
+    fn split_first_char(&self) -> Option<(char, &Self)> {
+        let mut chars = self.chars();
+        let c = chars.next()?;
+        Some((c, chars.as_str()))
+    }
+
+    fn split_first_char_mut(&mut self) -> Option<(char, &mut Self)> {
+        let c = self.chars().next()?;
+        Some((c, &mut self[c.len_utf8()..]))
+    }
+}
+
+impl SplitFirstChar for wstr {
+    fn split_first_char(&self) -> Option<(char, &Self)> {
+        let (&c, s) = self.as_char_slice().split_first()?;
+        Some((c, wstr::from_char_slice(s)))
+    }
+
+    fn split_first_char_mut(&mut self) -> Option<(char, &mut Self)> {
+        let (&mut c, s) = self.as_char_slice_mut().split_first_mut()?;
+        Some((c, wstr::from_char_slice_mut(s)))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
