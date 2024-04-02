@@ -2518,7 +2518,7 @@ impl Ast {
         for node in self.walk() {
             let depth = get_depth(node);
             // dot-| padding
-            result += &str::repeat("! ", depth)[..];
+            result += str::repeat("! ", depth).as_str();
 
             if let Some(n) = node.as_argument() {
                 result += "argument";
@@ -2553,9 +2553,9 @@ impl Ast {
                         token_type_user_presentable_description(n.token_type(), ParseKeyword::none)
                     }
                 };
-                result += &desc[..];
+                result += desc.as_utfstr();
             } else {
-                result += &node.describe()[..];
+                result += node.describe().as_utfstr();
             }
             result += "\n";
         }
@@ -3063,7 +3063,7 @@ fn keywords_user_presentable_description(kws: &'static [ParseKeyword]) -> WStrin
         if i != 0 {
             res += L!(" or ");
         }
-        res += &sprintf!("'%ls'", *kw)[..];
+        res += sprintf!("'%ls'", *kw).as_utfstr();
     }
     res
 }
@@ -3077,7 +3077,7 @@ fn token_types_user_presentable_description(types: &'static [ParseTokenType]) ->
         if !res.is_empty() {
             res += L!(" or ");
         }
-        res += &token_type_user_presentable_description(*typ, ParseKeyword::none)[..];
+        res += token_type_user_presentable_description(*typ, ParseKeyword::none).as_utfstr();
     }
     res
 }

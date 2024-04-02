@@ -835,7 +835,7 @@ impl<'a> ParseExecutionContext {
             };
         } else {
             // Not implicit cd.
-            let glob_behavior = if [L!("set"), L!("count"), L!("path")].contains(&&cmd[..]) {
+            let glob_behavior = if [L!("set"), L!("count"), L!("path")].contains(&cmd.as_utfstr()) {
                 Globspec::nullglob
             } else {
                 Globspec::failglob
@@ -1474,7 +1474,7 @@ impl<'a> ParseExecutionContext {
             }
             let redir_node = arg_or_redir.redirection();
 
-            let oper = match PipeOrRedir::try_from(&self.node_source(&redir_node.oper)[..]) {
+            let oper = match PipeOrRedir::try_from(self.node_source(&redir_node.oper).as_utfstr()) {
                 Ok(oper) if oper.is_valid() => oper,
                 _ => {
                     // TODO: figure out if this can ever happen. If so, improve this error message.
@@ -1847,7 +1847,7 @@ impl<'a> ParseExecutionContext {
                 break;
             }
             // Handle the pipe, whose fd may not be the obvious stdout.
-            let parsed_pipe = PipeOrRedir::try_from(&self.node_source(&jc.pipe)[..])
+            let parsed_pipe = PipeOrRedir::try_from(self.node_source(&jc.pipe).as_utfstr())
                 .expect("Failed to parse valid pipe");
             if !parsed_pipe.is_valid() {
                 result = report_error!(
@@ -1946,6 +1946,7 @@ impl<'a> ParseExecutionContext {
         Some(self.line_offset_of_character_at_offset(range.start()))
     }
 
+    // FIXME: make utf8-ready
     fn line_offset_of_character_at_offset(&self, offset: usize) -> usize {
         // Count the number of newlines, leveraging our cache.
         assert!(offset <= self.pstree().src.len());
